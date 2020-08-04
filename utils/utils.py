@@ -66,7 +66,7 @@ def coco80_to_coco91_class():  # converts 80-index (val2014) to 91-index (paper)
     return x
 
 
-def plot_one_box(x, img, line_thickness=None):  # Plots one bounding box on image img
+def plot_one_box(x, img, color, line_thickness=None):  # Plots one bounding box on image img
     tl = line_thickness or round(0.002 * max(img.shape[0:2])) + 1  # line thickness
     c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
 
@@ -81,23 +81,25 @@ def plot_one_box(x, img, line_thickness=None):  # Plots one bounding box on imag
 
     colr = np.mean(img[(c1[1]+c2[1])//2:c2[1], int(0.5 * (c1[0] + c2[0])), :],axis=0)
     b,g,r=colr/np.sum(colr)
-    if b>0.4:
-        label='blue'
-        color=(255,0,0)
-    elif g > 0.5:
-        label = 'green'
-        color = (0, 255, 0)
-    elif r > 0.5:
-        label = 'red'
-        color = (0, 0, 255)
-    elif g>0.3 and r>0.3:
-        label = 'yellow'
-        color = (0, 255, 255)
-    else:
-        label = 'what'
-        color = (0,0,0)
-    #color decision needs to be edited with actual env
 
+    label = 'cone'
+    # if b>0.4:
+        # label='blue'
+        # color=(255,0,0)
+    # elif g > 0.5:
+        # label = 'green'
+        # color = (0, 255, 0)
+    # elif r > 0.5:
+        # label = 'red'
+        # color = (0, 0, 255)
+    # elif g>0.3 and r>0.3:
+        # label = 'yellow'
+        # color = (0, 255, 255)
+    # else:
+        # label = 'what'
+        # color = (0,0,0)
+
+    #color decision needs to be edited with actual env
     cv2.rectangle(img, c1, c2, color, thickness=tl)
     if label:
         tf = max(tl - 1, 1)  # font thickness

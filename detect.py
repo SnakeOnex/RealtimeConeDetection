@@ -1,12 +1,16 @@
 import argparse
 import shutil
 import time
+import sys
 from pathlib import Path
 from sys import platform
+import numpy as np
 
 from models import *
 from utils.datasets import *
 from utils.utils import *
+
+import matplotlib.pyplot as plt
 
 
 def detect(
@@ -50,6 +54,12 @@ def detect(
     # Get classes and colors
     classes = load_classes(parse_data_cfg('cfg/coco.data')['names'])
 
+    # create file
+    f = open("cones.csv", "w")
+
+    f.write("#CAR no.; eForce Driverless\n")
+    f.write(";Yellow one black stripe;Blue with one wite stripe;Orange with 2 white stripes;Cones with different colors\n")
+
     for i, (path, img, im0) in enumerate(dataloader):
         t = time.time()
         if webcam:
@@ -66,6 +76,12 @@ def detect(
         pred = model(img)
         pred = pred[pred[:, :, 4] > conf_thres]  # remove boxes < threshold
 
+        # class counts
+        yellow = 0
+        blue = 0
+        orange = 0
+        other = 0
+
         if len(pred) > 0:
             # Run NMS on predictions
             detections = non_max_suppression(pred.unsqueeze(0), conf_thres, nms_thres)[0]
@@ -80,9 +96,78 @@ def detect(
                         file.write('%g %g %g %g %g %g\n' %
                                    (x1, y1, x2, y2, cls, cls_conf * conf))
 
+                # check true color
+                # print("hello")
+                # print(im0.shape)
+
+                x1, y1 = int(x1.item()), int(y1.item())
+                x2, y2 = int(x2.item()), int(y2.item())
+                # print("bot left: ", x1, y1)
+                # print("top right: ", x2, y2)
+
+                
+
+                rgb = np.fliplr(im0.reshape(-1,3)).reshape(im0.shape)
+                # rgb[x1:x2, y1, :] = 0
+                percent = 0.3
+
+                hor_off= int(abs(x1 - x2) * percent)
+                ver_off= int(abs(y1 - y2) * percent)
+
+
+                # orange_arr = rgb[y1+ver_off:y2-ver_off, x1+hor_off:x2-hor_off, :] - np.array([255, 150, 33])
+                orange_arr = rgb[y1+ver_off:y2-ver_off, x1+hor_off:x2-hor_off, :]
+                orange_mean = orange_arr.mean()
+
+                blue_arr = abs(rgb[y1+ver_off:y2-ver_off, x1+hor_off:x2-hor_off, :] - np.array([0, 0, 255]))
+                blue_mean = blue_arr.mean()
+
+                yellow_arr = rgb[y1+ver_off:y2-ver_off, x1+hor_off:x2-hor_off, :] - np.array([255, 255, 0])
+                yellow_mean = yellow_arr.mean()
+
+                # blue = rgb[y1+ver_off:y2-ver_off, x1+hor_off:x2-hor_off, 2].mean()
+                # yellow = rgb[y1+ver_off:y2-ver_off, x1+hor_off:x2-hor_off, 1].mean()
+                # print(orange_mean)
+                # print(blue_mean)
+                # print(yellow_mean)
+
+                if orange_mean > 90:
+                    # print("orange")
+                    color = (33, 150, 255)
+                    orange += 1
+                elif blue_mean < 60:
+                    # print("blue")
+                    color = (255, 0, 0)
+                    blue += 1
+                elif yellow_mean < -10:
+                    # print("yellow")
+                    color = (0, 255, 255)
+                    yellow += 1
+                else:
+                    # print("other")
+                    color = (0, 0, 0)
+                    other += 1
+
+                # rgb[y1+ver_off:y2-ver_off, x1+hor_off:x2-hor_off, :] = 0
+
+
+
+
+                # print(rgb.shape)
+
+                # imgplot = plt.imshow(rgb)
+                # plt.show()
+                # plt.plot()
+                # sys.exit(0)
+
                 # Add bbox to the image
-                label = plot_one_box([x1, y1, x2, y2], im0)
+                label = plot_one_box([x1, y1, x2, y2], im0, color)
                 print(label,end=', ')
+
+        # save into file
+        img_name = path.split('/')[2]
+        print("img name: ", img_name)
+        f.write(f"{img_name}; {yellow}; {blue}; {orange}; {other}\n")
 
         dt = time.time() - t
         print('Done. (%.3fs)' % dt)
